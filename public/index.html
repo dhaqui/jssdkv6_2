@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PayPal JS SDK v6 — ボタン実装サンプル</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 40px 16px;
+    }
+
+    .container {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 480px;
+      padding: 32px;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: #1a1a1a;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 24px;
+    }
+
+    /* Order summary */
+    .order-summary {
+      border: 1px solid #e8e8e8;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+
+    .order-summary h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .order-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .order-item:last-child { border-bottom: none; }
+
+    .order-item .name { font-size: 14px; color: #333; }
+    .order-item .price { font-size: 14px; font-weight: 600; color: #1a1a1a; }
+
+    .order-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 2px solid #e8e8e8;
+    }
+
+    .order-total .label { font-size: 15px; font-weight: 700; }
+    .order-total .amount { font-size: 18px; font-weight: 700; color: #003087; }
+
+    /* Payment section */
+    .payment-section h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* PayPal web components */
+    paypal-button,
+    paypal-pay-later-button,
+    paypal-credit-button {
+      display: block;
+      width: 100%;
+      margin-bottom: 12px;
+    }
+
+    /* Skeleton loaders */
+    .btn-skeleton {
+      height: 44px;
+      border-radius: 6px;
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      margin-bottom: 12px;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    /* Status messages */
+    .status {
+      margin-top: 16px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: none;
+    }
+
+    .status.info    { background: #e8f4fd; color: #0070ba; border: 1px solid #bee3f8; display: block; }
+    .status.success { background: #e6f9f0; color: #00853d; border: 1px solid #b2f0d0; display: block; }
+    .status.error   { background: #fff0f0; color: #c0392b; border: 1px solid #fcc; display: block; }
+    .status.warning { background: #fffbe6; color: #856404; border: 1px solid #ffe58f; display: block; }
+
+    .status strong { font-weight: 700; }
+
+    /* Divider */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 8px 0;
+      color: #aaa;
+      font-size: 12px;
+    }
+    .divider::before,
+    .divider::after {
+      content: "";
+      flex: 1;
+      border-top: 1px solid #e8e8e8;
+    }
+
+    /* Config note */
+    .config-note {
+      margin-top: 24px;
+      padding: 14px;
+      background: #fffbe6;
+      border: 1px solid #ffe58f;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #666;
+      line-height: 1.6;
+    }
+    .config-note code {
+      background: #f0f0f0;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 11px;
+      color: #c0392b;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>チェックアウト</h1>
+  <p class="subtitle">PayPal JS SDK v6 実装サンプル</p>
+
+  <!-- 注文サマリー -->
+  <div class="order-summary">
+    <h2>注文内容</h2>
+    <div class="order-item">
+      <span class="name">商品A — プレミアムプラン</span>
+      <span class="price">$49.99</span>
+    </div>
+    <div class="order-item">
+      <span class="name">送料</span>
+      <span class="price">$0.00</span>
+    </div>
+    <div class="order-total">
+      <span class="label">合計</span>
+      <span class="amount">$49.99</span>
+    </div>
+  </div>
+
+  <!-- 支払いボタン -->
+  <div class="payment-section">
+    <h2>お支払い方法</h2>
+
+    <!-- ローディング中スケルトン -->
+    <div id="loading-skeletons">
+      <div class="btn-skeleton"></div>
+      <div class="btn-skeleton" style="opacity:.6"></div>
+    </div>
+
+    <!--
+      PayPal Web Components (JS SDK v6)
+      初期状態は hidden。eligibility チェック後に表示される。
+    -->
+    <paypal-button hidden></paypal-button>
+
+    <div class="divider" id="divider-paylater" style="display:none">または</div>
+
+    <paypal-pay-later-button hidden></paypal-pay-later-button>
+
+    <div class="divider" id="divider-credit" style="display:none">または</div>
+
+    <paypal-credit-button hidden></paypal-credit-button>
+  </div>
+
+  <!-- ステータスメッセージ -->
+  <div id="status-msg" class="status"></div>
+
+  <!-- 設定ガイド -->
+  <div class="config-note">
+    <strong>起動方法：</strong><br>
+    1. <code>.env</code> に <code>PAYPAL_CLIENT_ID</code> と <code>PAYPAL_CLIENT_SECRET</code> を設定<br>
+    2. <code>npm install &amp;&amp; node server.js</code> でサーバーを起動（ポート 8080）<br>
+    3. <code>YOUR_CLIENT_ID</code> を実際のクライアントIDに変更してこのHTMLを開く<br>
+    サンドボックステストは <code>sandbox.paypal.com</code> のスクリプトURLを使用します。
+  </div>
+</div>
+
+<!--
+  ========================================================
+  PayPal JS SDK v6 — 本番用スクリプト
+  テスト時は sandbox.paypal.com に変更してください:
+  <script src="https://www.sandbox.paypal.com/web-sdk/v6/core"></script>
+  ========================================================
+-->
+<script src="https://www.sandbox.paypal.com/web-sdk/v6/core"></script>
+
+<script>
+  // ----------------------------------------------------------------
+  // 設定
+  // ----------------------------------------------------------------
+  const CLIENT_ID   = "YOUR_CLIENT_ID";   // ← 実際のクライアントIDに変更
+  const CURRENCY    = "USD";
+  const ORDER_AMOUNT = "49.99";
+
+  // ----------------------------------------------------------------
+  // ユーティリティ
+  // ----------------------------------------------------------------
+  function showStatus(message, type = "info") {
+    const el = document.getElementById("status-msg");
+    el.className = `status ${type}`;
+    el.innerHTML = message;
+  }
+
+  function hideSkeletons() {
+    document.getElementById("loading-skeletons").style.display = "none";
+  }
+
+  // ----------------------------------------------------------------
+  // サーバーサイド API 呼び出し
+  // ----------------------------------------------------------------
+  // 同一オリジンで配信されるため相対パスでOK（ローカル・Render 両対応）
+  const API_BASE = "";
+
+  /**
+   * 注文を作成し orderId を返す
+   * @returns {Promise<{orderId: string}>}  ← v6 では必ずこの形式で返す
+   */
+  async function createOrder() {
+    console.log("[createOrder] 注文を作成中...");
+
+    const res = await fetch(`${API_BASE}/api/orders`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        amount: ORDER_AMOUNT,
+        currency: CURRENCY,
+        // 明細を渡す場合:
+        // items: [{ name: "商品A — プレミアムプラン", price: "49.99", quantity: 1 }],
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error ?? "注文の作成に失敗しました");
+    }
+
+    console.log("[createOrder] 注文ID:", data.id);
+    return { orderId: data.id }; // ← v6 SDK が要求する形式
+  }
+
+  /**
+   * 注文をキャプチャ（決済確定）する
+   * @param {{orderId: string}} param
+   */
+  async function captureOrder({ orderId }) {
+    console.log("[captureOrder] キャプチャ開始:", orderId);
+
+    const res = await fetch(`${API_BASE}/api/orders/${orderId}/capture`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error ?? "キャプチャに失敗しました");
+    }
+
+    console.log("[captureOrder] 完了:", data.status);
+    return data;
+  }
+
+  // ----------------------------------------------------------------
+  // 共通のペイメントセッションオプション
+  // ----------------------------------------------------------------
+  const paymentSessionOptions = {
+    /**
+     * ユーザーが支払いを承認したときのコールバック
+     */
+    async onApprove(data) {
+      showStatus("⏳ 決済を処理中です...", "info");
+      try {
+        const result = await captureOrder(data.orderId);
+        console.log("[onApprove] キャプチャ完了:", result);
+        showStatus(
+          `<strong>✅ 支払いが完了しました！</strong><br>注文ID: ${data.orderId}`,
+          "success"
+        );
+      } catch (err) {
+        console.error("[onApprove] キャプチャ失敗:", err);
+        showStatus("❌ 決済処理に失敗しました。もう一度お試しください。", "error");
+      }
+    },
+
+    /**
+     * ユーザーが支払いをキャンセルしたときのコールバック
+     */
+    onCancel(data) {
+      console.log("[onCancel]", data);
+      showStatus("ℹ️ 支払いがキャンセルされました。", "warning");
+    },
+
+    /**
+     * エラー発生時のコールバック
+     */
+    onError(error) {
+      console.error("[onError]", error);
+      showStatus("❌ エラーが発生しました: " + (error?.message ?? error), "error");
+    },
+  };
+
+  // ----------------------------------------------------------------
+  // PayPal ボタンのセットアップ
+  // ----------------------------------------------------------------
+  async function setupPayPalButton(sdkInstance) {
+    const session = sdkInstance.createPayPalOneTimePaymentSession(paymentSessionOptions);
+    const button  = document.querySelector("paypal-button");
+
+    button.removeAttribute("hidden");
+
+    button.addEventListener("click", async () => {
+      showStatus("⏳ PayPal を起動中です...", "info");
+      try {
+        await session.start(
+          { presentationMode: "auto" }, // ポップアップ or リダイレクトを自動選択
+          createOrder()
+        );
+      } catch (err) {
+        console.error("[PayPal] start エラー:", err);
+        showStatus("❌ PayPal の起動に失敗しました。", "error");
+      }
+    });
+  }
+
+  // ----------------------------------------------------------------
+  // Pay Later ボタンのセットアップ
+  // ----------------------------------------------------------------
+  async function setupPayLaterButton(sdkInstance, details) {
+    const session = sdkInstance.createPayLaterOneTimePaymentSession(paymentSessionOptions);
+    const button  = document.querySelector("paypal-pay-later-button");
+    const divider = document.getElementById("divider-paylater");
+
+    // Pay Later 固有のプロパティを設定
+    button.productCode  = details.productCode;
+    button.countryCode  = details.countryCode;
+
+    button.removeAttribute("hidden");
+    divider.style.display = "flex";
+
+    button.addEventListener("click", async () => {
+      showStatus("⏳ Pay Later を起動中です...", "info");
+      try {
+        await session.start(
+          { presentationMode: "auto" },
+          createOrder()
+        );
+      } catch (err) {
+        console.error("[PayLater] start エラー:", err);
+        showStatus("❌ Pay Later の起動に失敗しました。", "error");
+      }
+    });
+  }
+
+  // ----------------------------------------------------------------
+  // PayPal Credit ボタンのセットアップ
+  // ----------------------------------------------------------------
+  async function setupPayPalCreditButton(sdkInstance, details) {
+    const session = sdkInstance.createPayPalCreditOneTimePaymentSession(paymentSessionOptions);
+    const button  = document.querySelector("paypal-credit-button");
+    const divider = document.getElementById("divider-credit");
+
+    button.countryCode = details.countryCode;
+
+    button.removeAttribute("hidden");
+    divider.style.display = "flex";
+
+    button.addEventListener("click", async () => {
+      showStatus("⏳ PayPal Credit を起動中です...", "info");
+      try {
+        await session.start(
+          { presentationMode: "auto" },
+          createOrder()
+        );
+      } catch (err) {
+        console.error("[PayPalCredit] start エラー:", err);
+        showStatus("❌ PayPal Credit の起動に失敗しました。", "error");
+      }
+    });
+  }
+
+  // ----------------------------------------------------------------
+  // メインエントリーポイント
+  // SDK がロードされると window.paypal が利用可能になる
+  // ----------------------------------------------------------------
+  async function onPayPalWebSdkLoaded() {
+    try {
+      // 1. SDK インスタンスを作成（認証 + コンポーネント指定）
+      const sdkInstance = await window.paypal.createInstance({
+        clientId: CLIENT_ID,
+        components: ["paypal-payments"],
+        pageType: "checkout",
+        locale: "ja-JP",
+        clientMetadataId: crypto.randomUUID(), // セッション追跡用
+      });
+
+      // 2. Eligibility チェック（支払い方法の利用可否を確認）
+      const paymentMethods = await sdkInstance.findEligibleMethods({
+        currencyCode: CURRENCY,
+      });
+
+      hideSkeletons();
+
+      let anyEligible = false;
+
+      // PayPal ボタン
+      if (paymentMethods.isEligible("paypal")) {
+        await setupPayPalButton(sdkInstance);
+        anyEligible = true;
+      }
+
+      // Pay Later ボタン
+      if (paymentMethods.isEligible("paylater")) {
+        const details = paymentMethods.getDetails("paylater");
+        await setupPayLaterButton(sdkInstance, details);
+        anyEligible = true;
+      }
+
+      // PayPal Credit ボタン
+      if (paymentMethods.isEligible("credit")) {
+        const details = paymentMethods.getDetails("credit");
+        await setupPayPalCreditButton(sdkInstance, details);
+        anyEligible = true;
+      }
+
+      if (!anyEligible) {
+        showStatus(
+          "ℹ️ 現在、利用可能な PayPal 支払い方法がありません。",
+          "warning"
+        );
+      }
+
+    } catch (err) {
+      hideSkeletons();
+      console.error("[SDK] 初期化エラー:", err);
+      showStatus(
+        "❌ PayPal SDK の初期化に失敗しました。<br>クライアントIDを確認してください。",
+        "error"
+      );
+    }
+  }
+
+  // DOM 準備後に SDK を起動
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", onPayPalWebSdkLoaded);
+  } else {
+    onPayPalWebSdkLoaded();
+  }
+</script>
+
+</body>
+</html>

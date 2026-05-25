@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: paypal-v6-checkout
+    runtime: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PAYPAL_CLIENT_ID
+        sync: false          # Render ダッシュボードで手動設定
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false          # Render ダッシュボードで手動設定
